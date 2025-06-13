@@ -1,0 +1,6 @@
+llama_index
+openai
+pydantic
+PyYAML
+llama-index-readers-wikipedia
+wikipedia

@@ -1,4 +1,3 @@
-# REPLACE THIS WITH YOUR CODE
 import os
 import yaml
 
@@ -13,7 +12,7 @@ def get_apikey():
     """
     
     # Construct the full path to the configuration file
-    script_dir = "/usercode/"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(script_dir, "apikeys.yml")
 
     with open(file_path, 'r') as yamlfile:
