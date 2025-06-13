@@ -1,2 +1,5 @@
 apikeys.yml
 __pycache__
+venv
+.chainlit
+chainlit.md
