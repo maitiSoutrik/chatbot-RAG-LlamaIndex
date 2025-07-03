@@ -1,25 +1,26 @@
 import os
 import yaml
 
-def get_apikey():
+def get_apikey(service):
     """
-    Reads API key from a configuration file.
+    Reads API key from a configuration file for a given service.
 
-    This function opens a configuration file named "apikeys.yml", reads the API key for OpenAI
+    Args:
+    service (str): The name of the service (e.g., 'openai', 'livekit', 'deepgram', 'cartesia').
 
     Returns:
-    api_key (str): The OpenAI API key.
+    dict or str: The API key(s) for the specified service.
     """
     
-    # Construct the full path to the configuration file
     script_dir = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(script_dir, "apikeys.yml")
 
     with open(file_path, 'r') as yamlfile:
         apikeys = yaml.safe_load(yamlfile)
-        API_KEY = apikeys['openai']['api_key']
-        
-    return API_KEY
+        return apikeys.get(service)
 
 if __name__ == "__main__":
-    print("API_KEY", get_apikey())
+    print("OpenAI API Key:", get_apikey('openai').get('api_key'))
+    print("LiveKit Config:", get_apikey('livekit'))
+    print("Deepgram API Key:", get_apikey('deepgram').get('api_key'))
+    print("Cartesia API Key:", get_apikey('cartesia').get('api_key'))
