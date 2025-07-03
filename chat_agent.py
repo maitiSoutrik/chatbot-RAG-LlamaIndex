@@ -1,12 +1,14 @@
 from llama_index.core.tools.query_engine import QueryEngineTool
 from llama_index.core.tools.types import ToolMetadata
+from llama_index.core.tools import FunctionTool
+from llama_index.readers.wikipedia import WikipediaReader
 from llama_index.core.agent.react.base import ReActAgent
 from llama_index.core.chat_engine.types import AgentChatResponse
 from llama_index.llms.openai.base import OpenAI
 import chainlit as cl
 from chainlit.input_widget import Select, TextInput
 import openai
-from index_wikipages import create_index
+from index_wikipages import create_index_from_query as create_index
 from utils import get_apikey
 
 
@@ -39,21 +41,49 @@ def wikisearch_engine(index):
     return query_engine
 
 
-def create_react_agent(MODEL):
+def create_react_agent(MODEL, index, persist_dir: str = None):
     query_engine_tools = [
         QueryEngineTool(
             query_engine=wikisearch_engine(index),
             metadata=ToolMetadata(
                 name="Wikipedia",
-                description="Useful for performing searches on the wikipedia knowledgebase"
+                description="Useful for performing searches on the wikipedia knowledgebase",
             ),
         )
     ]
 
-    openai.api_key = get_apikey()
+    openai.api_key = get_apikey('openai').get('api_key')
     llm = OpenAI(model=MODEL)
+    def add_page(page_title: str) -> str:
+        """
+        Adds a new Wikipedia page to the knowledge base.
+        Use this tool when the user asks to add, learn about, or index a new topic.
+        The index will be updated and saved for future sessions.
+        """
+        try:
+            page_documents = WikipediaReader().load_data(pages=[page_title], auto_suggest=False)
+            for doc in page_documents:
+                index.insert(doc)
+            
+            if persist_dir:
+                index.storage_context.persist(persist_dir=persist_dir)
+                return f"Successfully added and saved the page '{page_title}' to the knowledge base."
+            else:
+                return f"Successfully added page '{page_title}' to the current session. It will not be saved."
+
+        except Exception as e:
+            return f"Failed to add page '{page_title}': {e}"
+
+    add_page_tool = FunctionTool.from_defaults(
+        fn=add_page,
+        name="add_wikipedia_page",
+        description="Adds a new Wikipedia page to the knowledge base. Use this when the user asks to add, learn about, or index a new topic."
+    )
+
+    all_tools = query_engine_tools + [add_page_tool]
+
     agent = ReActAgent.from_tools(
-        tools=query_engine_tools,
+        tools=all_tools,
         llm=llm,
         verbose=True,
     )
@@ -75,7 +105,7 @@ async def setup_agent(settings):
     MODEL = settings["MODEL"]
     if not isinstance(MODEL, str):
         MODEL = str(MODEL)
-    agent = create_react_agent(MODEL)
+    agent = create_react_agent(MODEL, index)
     await cl.Message(
         author="Agent", content=f"""Wikipage(s) "{query}" successfully indexed"""
     ).send()
