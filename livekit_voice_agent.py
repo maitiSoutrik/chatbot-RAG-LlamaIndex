@@ -18,7 +18,9 @@ logger = logging.getLogger("voice-assistant")
 # Get API keys from apikeys.yml
 livekit_config = get_apikey('livekit')
 DEEPGRAM_API_KEY = get_apikey('deepgram').get('api_key')
-CARTESIA_API_KEY = get_apikey('cartesia').get('api_key')
+cartesia_config = get_apikey('cartesia')
+CARTESIA_API_KEY = cartesia_config.get('api_key')
+CARTESIA_VOICE_ID = cartesia_config.get('voice_id')
 openai.api_key = get_apikey('openai').get('api_key')
 
 # Clear and recreate the storage directory for a fresh start
@@ -55,7 +57,7 @@ async def entrypoint(ctx: JobContext):
     logger.info(f"Starting voice assistant for participant {participant.identity}")
 
     stt = deepgram.STT(api_key=DEEPGRAM_API_KEY)
-    tts = cartesia.TTS(api_key=CARTESIA_API_KEY)
+    tts = cartesia.TTS(api_key=CARTESIA_API_KEY, voice=CARTESIA_VOICE_ID)
     llm = llama_index.LLM(chat_engine=react_agent)
 
     agent = VoicePipelineAgent(
